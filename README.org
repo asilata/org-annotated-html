@@ -1,0 +1,5 @@
+#+title: README
+
+This repository contains code that does the following.
+1. Defines a new html-derived export backend for org-mode, called "annotated-html". This backend has support for sidenotes instead of footnotes.
+2. Defines some stock CSS that can be used with this backend.

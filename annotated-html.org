@@ -1,0 +1,190 @@
+#+title: Tufte-style annotated html export in org
+#+author: Asilata Bapat
+
+* Sample text with annotations
+This is some sample text with annotations.[fn::This is an annotation, aka a "footnote".]
+"Footnotes" actually appear on the side when exported to HTML.
+
+* Derived backend (elisp)
+This has been clobbered together from code inspired by [[https://github.com/dakrone/ox-tufte][ox-tufte]] and [[https://jnboehm.gitlab.io/blog/tufte-css/][jnboehm's Tufte CSS backend]].
+#+name: annotated-html
+#+begin_src emacs-lisp :results none
+    (org-export-define-derived-backend 'annotated-html 'html
+      :translate-alist '((footnote-reference . annotated-footnote-reference)))
+    
+    (defun annotated-footnote-reference (footnote-reference _contents info)
+      "Transcode a FOOTNOTE-REFERENCE element from Org to HTML.
+      CONTENTS is nil.  INFO is a plist holding contextual information."
+      (concat
+       ;; Insert separator between two footnotes in a row.
+       (let ((prev (org-export-get-previous-element footnote-reference info)))
+         (when (eq (org-element-type prev) 'footnote-reference)
+           (plist-get info :html-footnote-separator)))
+       (let* ((n (org-export-get-footnote-number footnote-reference info))
+              (fnr-id (format "fnr.%d%s" n
+                              (if (org-export-footnote-first-reference-p
+                                   footnote-reference info)
+                                  ""
+                                ".100")))
+              (fn-id (format "fn.%d" n))
+              (raw-text (org-trim
+                         (org-export-data
+                          (org-export-get-footnote-definition footnote-reference info)
+                          info)))
+              ;; footnotes must have spurious <p> tags removed or they will not work
+              (text (replace-regexp-in-string "</?p.*>" "" raw-text)))
+         (concat
+          ;; Format the footnote reference in the main text.
+          (format
+           ;; Format as per :html-footnote-format (typically within <sup> tags).
+           (plist-get info :html-footnote-format)
+           ;; Construct a link to the actual footnote.
+           (org-html--anchor
+            fnr-id n
+            (format " class=\"footref\" href=\"#%s\" role=\"doc-backlink\" onmouseover=\"textHLOn(this, '%s')\" onmouseout=\"textHLOff(this, '%s')\"" fn-id fn-id fn-id) info))
+    
+          ;; Format the footnote number and text.
+          (format
+           "<span class=\"annot\" id=\"%s\" onmouseover=\"sidenoteHLOn(this,'%s')\" onmouseout=\"sidenoteHLOff(this, '%s')\">%d. %s</span>"
+           fn-id
+           fnr-id
+           fnr-id
+           n
+           text)
+          ))))
+    
+    (defun org-annotated-export-to-buffer
+        (&optional async subtreep visible-only body-only ext-plist)
+      "Export current buffer as an html buffer with annotation customisations.
+    If narrowing is active in the current buffer, only export its
+    narrowed part.
+    If a region is active, export that region.
+    A non-nil optional argument ASYNC means the process should happen
+    asynchronously.  The resulting buffer should be accessible
+    through the `org-export-stack' interface.
+    When optional argument SUBTREEP is non-nil, export the sub-tree
+    at point, extracting information from the headline properties
+    first.
+    When optional argument VISIBLE-ONLY is non-nil, don't export
+    contents of hidden elements.
+    When optional argument BODY-ONLY is non-nil, only write code
+    between the bo
+    EXT-PLIST, when provided, is a property list with external
+    parameters overriding Org default settings, but still inferior to
+    file-local settings.
+    Export is done in a buffer named \"*Org annotated html export*\", which
+    will be displayed when `org-export-show-temporary-export-buffer'
+    is non-nil."
+      (interactive)
+      (org-export-to-buffer 'annotated-html "*Org annotated html export*"
+        async subtreep visible-only body-only ext-plist (lambda () (html-mode))))
+    
+    (defun org-annotated-export-to-file (&optional async subtreep visible-only)
+    "Export current buffer to an annotated HTML file.
+  
+  If narrowing is active in the current buffer, only export its
+  narrowed part.
+  
+  If a region is active, export that region.
+  
+  A non-nil optional argument ASYNC means the process should happen
+  asynchronously.  The resulting file should be accessible through
+  the `org-export-stack' interface.
+  
+  When optional argument SUBTREEP is non-nil, export the sub-tree
+  at point, extracting information from the headline properties
+  first.
+  
+  When optional argument VISIBLE-ONLY is non-nil, don't export
+  contents of hidden elements.
+  
+  Return output file's name."
+    (interactive)
+    (let ((outfile (org-export-output-file-name ".html" subtreep))
+          ;; need to bind this because we don't want to display list of footnotes
+          ;; at the bottom
+          (org-html-footnotes-section "<!-- %s --><!-- %s -->"))
+      (org-export-to-file 'annotated-html outfile async subtreep visible-only)))
+#+end_src
+
+* Stylesheet (CSS)
+CSS stylesheet to include in the html headers.
+#+name: annotated-css
+#+begin_src css
+  @media screen and (max-width: 480px) {
+      body {
+          max-width:95%;
+          font-size:100%;
+      }
+      #content { margin-right: 0em;}
+      .annot { display: block;}
+  }
+  @media screen and (min-width: 480px) {
+      body {
+          max-width:80%;
+      }
+      #content {
+          margin-right:20%;
+      }
+      .annot {float: right;
+              clear: right; margin-left: 5%; margin-right: -25%; width: 20%;}  
+  }
+  @media screen and (min-width: 550px) {
+      body {
+          font-size:110%;
+      }
+  }
+  @media screen and (min-width: 1000px) {
+      body {
+          max-width:1000px;
+      }
+      #content {
+          margin-right:30%;
+      }
+      .annot {float: right;
+              clear: right; margin-left: 5%; margin-right: -35%; width: 30%;}  
+  }
+  body {
+      font-family: sans-serif;
+      margin-top: 0em;
+      margin-left:auto;
+      margin-right:auto;
+  }
+  ,* a {
+      text-decoration: none;
+  }
+  
+  h1, h2, h3, h4 {
+      font-weight: lighter;
+  }
+  
+  ul {
+      padding-left: 1em;
+  }
+  
+  ol {
+      padding-left: 1em;
+  }
+  .annot {
+      font-size: 75%;
+  }
+#+end_src
+
+* Produce HTML headers (elisp)
+Elisp code to output HTML headers containing the stylesheet and (eventually) javascript.
+#+name: html-headers
+#+begin_src emacs-lisp :noweb no-export :exports both :results value html
+  (concat "<style>"
+          "
+  <<annotated-css>>
+  "
+          "</style>")
+#+end_src
+
+* Wrapper
+I am not entirely sure why this is necessary.
+This [[https://stackoverflow.com/questions/47058372/in-org-mode-how-to-call-code-block-to-evaluate-from-other-org-file][StackOverflow post]] has more details.
+#+name: wrapper
+#+begin_src org :noweb yes
+  <<html-headers>>
+#+end_src
