@@ -79,12 +79,18 @@ The following function is based on code from [[https://linevi.ch/en/org-pygments
     (setq temp-source-file (format "/tmp/pygmentize-%s.txt"(md5 (current-time-string))))
     ;; Writing block contents to the file.
     (with-temp-file temp-source-file (insert (org-element-property :value code)))
-    ;; Executing the shell-command and reading an output
-    (shell-command-to-string (format "%s -l \"%s\" -f html %s"
-                                     pygments-path
-                                     (or (org-element-property :language code)
-                                         "")
-                                     temp-source-file)))  
+    (let* ((lang (or (org-element-property :language code) ""))
+           ;; Executing the shell-command and reading an output
+           (pygments-output (shell-command-to-string
+                            (format "%s -l \"%s\" -f html %s"
+                                    pygments-path
+                                    lang
+                                    temp-source-file)))
+           (pre-replacement (if (string-equal lang "")
+                                "<pre class=\"src\""
+                              (format "<pre class=\"src src-%s\"" lang))))
+      ;; Add language name to the <pre> tag. Now displays language name on hover.
+      (replace-regexp-in-string "<pre>" pre-replacement pygments-output)))
 #+end_src
 
 Export functions for the new backend. Once again inspired by [[https://github.com/dakrone/ox-tufte][ox-tufte]] and [[https://jnboehm.gitlab.io/blog/tufte-css/][jnboehm's Tufte CSS backend]].
