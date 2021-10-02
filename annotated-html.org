@@ -1,4 +1,4 @@
-#+title: Tufte-style annotated html export in org
+#+title: Tufte-style annotated html export in org-mode
 #+author: Asilata Bapat
 #+html_head: <link rel="preconnect" href="https://fonts.googleapis.com">
 #+html_head_extra: <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -8,7 +8,7 @@
 This is some sample text with annotations.[fn::This is an annotation, aka a "footnote".]
 "Footnotes" actually appear on the side when exported to HTML.
 
-* Derived backend (elisp)
+* Derived backend for export
 #+begin_src emacs-lisp :results silent
   (setq org-html-head-include-default-style t)
   (setq org-html-htmlize-output-type nil)
@@ -279,7 +279,7 @@ We then override the default css used by ox-html.
 This section will contain scripts that do fancy things when we hover over annotations.
 
 
-* Produce HTML headers (elisp)
+* Produce HTML headers
 Output HTML headers containing the stylesheet and (eventually) javascript.
 #+name: html-headers
 #+begin_src emacs-lisp :noweb no-export :exports both :results value html
