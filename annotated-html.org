@@ -153,10 +153,38 @@ Export functions for the new backend. Once again inspired by [[https://github.co
       (org-export-to-file 'annotated-html outfile async subtreep visible-only)))
 #+end_src
 
-* Stylesheet (CSS)
-Basic CSS stylesheet to include in the html headers.
+* Stylesheet
+Convert the chosen pygments style (in the variable ~style~) to css.
+We have (once again) used ~gruvbox-light~.
+#+name: pygments-style
+#+begin_src shell :results output raw silent :var style="gruvbox-light"
+  pygmentize -S $style -f html -a .highlight
+#+end_src
+
+Basic CSS stylesheet to include in the html headers. We begin with some variables to set up the theme, which is based on [[https://github.com/morhetz/gruvbox][gruvbox.]]
+We then override the default css used by ox-html.
+#+name: bg-color
+#+begin_src css :exports none
+  #ebdbb2
+#+end_src
+
+#+name: fg-color
+#+begin_src css :exports none
+  #282828
+#+end_src
+
+#+name: link-color
+#+begin_src css :exports none
+  #cc241d
+#+end_src
+
+#+name: bg-color-faded
+#+begin_src css :exports none
+  #fbf1c7
+#+end_src
+
 #+name: annotated-css
-#+begin_src css
+#+begin_src css :noweb no-export
   @media screen and (max-width: 480px) {
       body {
           max-width:95%;
@@ -192,19 +220,30 @@ Basic CSS stylesheet to include in the html headers.
   }
   body {
       font-family: 'Roboto Slab', sans-serif;
-      /* background: #f9faf9; */
-      /* color: #2e2d3b; */
-      background: #f1eff0;
-      color: #231d24;
+      background: <<bg-color>>;
+      color: <<fg-color>>;
       margin-top: 0em;
       margin-left:auto;
       margin-right:auto;
   }
+  
+  .title {
+      text-align: left;
+      margin: 0em;
+      padding: 0.5em 0em;
+  }
+  h1 > .title {
+      font-size: 110%;
+  }
+  
   ,* a {
-      color: #d16014;
+      color: <<link-color>>;
       text-decoration: none;
   }
   
+  ,* a:hover {
+      text-decoration: underline;
+  }
   h1, h2, h3, h4 {
   
   }
@@ -222,16 +261,23 @@ Basic CSS stylesheet to include in the html headers.
   
   pre {
       background-color: inherit;
-      border: inherit;
+      border: none;
       margin: 0;
+  }
+  
+  .highlight {
+      border: solid 1px <<link-color>>75;
+  }
+  
+  .todo, .done, .priority {
+      font-size: 90%;
+      font-weight: bold;
   }
 #+end_src
 
-Convert the chosen pygments style (in the variable ~style~) to css.
-#+name: pygments-style
-#+begin_src shell :results output raw silent :var style="tango"
-  pygmentize -S $style -f html -a .highlight
-#+end_src
+* TODO Javascript
+This section will contain scripts that do fancy things when we hover over annotations.
+
 
 * Produce HTML headers (elisp)
 Output HTML headers containing the stylesheet and (eventually) javascript.
@@ -239,8 +285,8 @@ Output HTML headers containing the stylesheet and (eventually) javascript.
 #+begin_src emacs-lisp :noweb no-export :exports both :results value html
   (concat "<style>"
           "
-  <<annotated-css>>
   <<pygments-style()>>
+  <<annotated-css>>
   "
           "</style>")
 #+end_src
